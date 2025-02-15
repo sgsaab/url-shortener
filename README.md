@@ -16,6 +16,12 @@ This project is a simple URL shortener which handles the following:
 - Analytics: The application tracks the number of times each
   shortened URL is accessed (clicks).
 
+## Example queries:
+
+To get analytics: /analytics/?shortened=abc123 || /analytics/?shortened=teenie/abc123  
+To shorten: shorten?url=www.gradescope.com
+To redirect: /abc123
+
 # Design Choices
 
 ## Project Structure

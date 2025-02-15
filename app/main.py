@@ -5,6 +5,7 @@ from .database import get_db, Base, engine
 from .schemas import URLCreate, URLResponse
 from .crud import create_short_url, get_url_info, expand_url
 from .exceptions import URLNotFoundException
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(
     title="URL Shortener API",
@@ -13,6 +14,9 @@ app = FastAPI(
 )
 
 Base.metadata.create_all(bind=engine)
+
+# Add after creating the FastAPI app
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 @app.post("/shorten/", 
     response_model=URLResponse,
@@ -27,21 +31,30 @@ def shorten_url(url_data: URLCreate, db: Session = Depends(get_db)):
     """
     return create_short_url(db, url_data)
 
-@app.get("/url/{short_code}",
+@app.get("/analytics/",
     response_model=URLResponse,
-    summary="Get URL info",
+    summary="Get URL analytics",
     description="Get information about a shortened URL including click count"
 )
-def get_url_stats(short_code: str, db: Session = Depends(get_db)):
+def get_url_analytics(shortened: str = None, db: Session = Depends(get_db)):
     """
     Get URL information and analytics:
-    - **short_code**: The shortened URL code
+    - **shortened**: The shortened URL (query parameter)
     Returns the URL details and click count
     """
+    if not shortened:
+        raise HTTPException(status_code=400, detail="URL parameter is required")
+        
     try:
-        return get_url_info(db, f"teenie/{short_code}")
+        # Extract just the code if full URL is provided
+        if shortened.startswith('teenie/'):
+            short_code = shortened
+        else:
+            short_code = f"teenie/{shortened}"
+            
+        return get_url_info(db, short_code)
     except URLNotFoundException as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
 @app.get("/teenie/{short_code}",
     summary="Expand URL",
@@ -70,3 +83,8 @@ def shorten_url_get(url: str, db: Session = Depends(get_db)):
     
     url_data = URLCreate(original_url=url)
     return create_short_url(db, url_data)
+
+@app.get("/")
+def read_root():
+    """Redirect root to documentation"""
+    return RedirectResponse(url="/static/index.html")

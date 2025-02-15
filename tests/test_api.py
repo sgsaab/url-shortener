@@ -22,7 +22,7 @@ def test_url_shortening_flow(client):
     assert redirect_response.headers["location"].rstrip('/') == "https://example.com"
     
     # Verify click was counted
-    stats_response = client.get(f"/url/{short_code}")
+    stats_response = client.get(f"/analytics/?shortened={short_code}")
     assert stats_response.json()["clicks"] == 1
 
 def test_invalid_url(client):
@@ -38,7 +38,7 @@ def test_nonexistent_url(client):
     response = client.get("/teenie/nonexistent")
     assert response.status_code == 404
 
-def test_get_url_info(client):
+def test_get_url_analytics(client):
     """Test getting URL info and click count."""
     # First create a URL
     create_response = client.post(
@@ -48,7 +48,7 @@ def test_get_url_info(client):
     short_code = create_response.json()["short_url"].split('/')[-1]
     
     # Get URL info
-    response = client.get(f"/url/{short_code}")
+    response = client.get(f"/analytics/?shortened={short_code}")
     assert response.status_code == 200
     data = response.json()
     assert data["original_url"].rstrip('/') == "https://example.com"
@@ -64,7 +64,7 @@ def test_click_counter(client):
     short_code = create_response.json()["short_url"].split('/')[-1]
     
     # Get info shouldn't increment counter
-    info_response = client.get(f"/url/{short_code}")
+    info_response = client.get(f"/analytics/?shortened={short_code}")
     assert info_response.json()["clicks"] == 0
     
     # Access URL multiple times should increment counter
@@ -72,12 +72,12 @@ def test_click_counter(client):
         client.get(f"/teenie/{short_code}")
     
     # Check the click count
-    info_response = client.get(f"/url/{short_code}")
+    info_response = client.get(f"/analytics/?shortened={short_code}")
     assert info_response.json()["clicks"] == 3  # Only expansion requests count
 
 def test_get_nonexistent_url(client):
     """Test accessing a nonexistent shortened URL."""
-    response = client.get("/url/nonexistent")
+    response = client.get("/analytics/?shortened=nonexistent")
     assert response.status_code == 404
     assert response.json()["detail"] == "URL not found: teenie/nonexistent"
 
@@ -93,4 +93,4 @@ def test_url_expansion(client):
     # Try expanding it
     response = client.get(f"/teenie/{short_code}", follow_redirects=False)
     assert response.status_code == 307  # Temporary redirect
-    assert response.headers["location"].rstrip('/') == "https://example.com"  # Remove trailing slash 
+    assert response.headers["location"].rstrip('/') == "https://example.com"  # Remove trailing slash
