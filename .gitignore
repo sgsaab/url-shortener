@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+
+# Project specific
+.env
+*.db
+test.db
+.pytest_cache/
+
+# Docker
+.docker/
+docker-compose.override.yml
